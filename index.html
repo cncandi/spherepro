@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpherePro">
+<meta name="theme-color" content="#04070f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>SpherePro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg:       #04070f;
+  --surf:     #080e1c;
+  --surf2:    #0c1424;
+  --surf3:    #111e35;
+  --border:   #1a2a45;
+  --accent:   #00e5ff;
+  --purple:   #8b5cf6;
+  --green:    #10b981;
+  --yellow:   #f59e0b;
+  --red:      #ef4444;
+  --text:     #d1e0f5;
+  --muted:    #4a6080;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bot: env(safe-area-inset-bottom, 34px);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Instrument Sans', sans-serif;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== LAYOUT SHELL ===== */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ===== HEADER ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 8px) 20px 12px;
+  background: rgba(4,7,15,0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-shadow: 0 0 16px rgba(0,229,255,0.4);
+  line-height: 1;
+}
+.logo em { color: var(--text); font-style: normal; }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 2.5s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.offline-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--yellow);
+  display: none;
+}
+
+/* ===== TABS ===== */
+.tab-bar {
+  display: flex;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 4px;
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tab .icon { font-size: 18px; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ===== SCROLL AREA ===== */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.view { display: none; padding: 16px; padding-bottom: calc(var(--safe-bot) + 80px); }
+.view.active { display: block; }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.card-icon.blue  { background: rgba(0,229,255,0.1); }
+.card-icon.purple{ background: rgba(139,92,246,0.1); }
+.card-icon.green { background: rgba(16,185,129,0.1); }
+.card-icon.yellow{ background: rgba(245,158,11,0.1); }
+
+.card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.card-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 1px;
+}
+.card-body { padding: 16px; }
+
+/* ===== BADGE ===== */
+.badge {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.badge.open   { background: rgba(74,96,128,0.3); color: var(--muted); }
+.badge.active2{ background: rgba(0,229,255,0.15); color: var(--accent); border: 1px solid rgba(0,229,255,0.3); }
+.badge.done2  { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.badge.warn2  { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.badge.bad2   { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+/* ===== INPUTS ===== */
+.field-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.xyz-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.xyz-field { position: relative; }
+.xyz-letter {
+  position: absolute;
+  top: 50%; left: 10px;
+  transform: translateY(-50%);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+.xyz-field:nth-child(1) .xyz-letter { color: #f87171; }
+.xyz-field:nth-child(2) .xyz-letter { color: #34d399; }
+.xyz-field:nth-child(3) .xyz-letter { color: #60a5fa; }
+
+input[type="number"] {
+  width: 100%;
+  background: var(--surf2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 10px 11px 28px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+}
+input[type="number"]::placeholder { color: var(--muted); }
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.single-input-wrap { position: relative; margin-bottom: 12px; }
+.single-input-wrap input {
+  padding-left: 12px;
+}
+.input-unit {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary  { background: var(--accent); color: #000; }
+.btn-primary:active { background: #33ecff; }
+.btn-ghost    { background: var(--surf2); color: var(--text); border: 1.5px solid var(--border); }
+.btn-ghost:active { background: var(--surf3); }
+.btn-danger   { background: rgba(239,68,68,0.1); color: var(--red); border: 1.5px solid rgba(239,68,68,0.2); }
+.btn-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ===== POINT LIST ===== */
+.point-list { display: flex; flex-direction: column; gap: 8px; }
+
+.point-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surf2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.point-num {
+  width: 24px; height: 24px;
+  background: var(--purple);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.point-coords {
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.point-coords .coord-label { color: var(--muted); font-size: 10px; }
+
+.point-dev {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-align: right;
+}
+
+.point-del {
+  background: none; border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.point-del:active { color: var(--red); }
+
+.empty-state {
+  text-align: center;
+  padding: 28px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.empty-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+
+/* ===== METRICS ===== */
+.metric-big {
+  background: var(--surf2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.metric-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.metric-unit-big {
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.metric-label-big {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.metric-sub-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.dev-bar-wrap {
+  height: 5px;
+  background: var(--surf3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.dev-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease, background 0.5s;
+}
+
+/* Axis cards */
+.axis-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.axis-card {
+  background: var(--surf2);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.axis-card-letter {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.axis-card-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* Quality alert */
+.quality-alert {
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.quality-alert.good   { background: rgba(16,185,129,0.08); border: 1.5px solid rgba(16,185,129,0.25); }
+.quality-alert.warn   { background: rgba(245,158,11,0.08); border: 1.5px solid rgba(245,158,11,0.25); }
+.quality-alert.bad    { background: rgba(239,68,68,0.08);  border: 1.5px solid rgba(239,68,68,0.25); }
+.quality-alert.none   { background: var(--surf2); border: 1.5px solid var(--border); }
+.quality-icon-big { font-size: 28px; }
+.quality-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.quality-text strong { font-size: 13px; display: block; }
+
+/* ===== CROSSHAIR CANVAS ===== */
+.canvas-wrap {
+  background: var(--surf2);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.canvas-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+canvas#ch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: block;
+}
+
+/* ===== SETTINGS VIEW ===== */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-key {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.settings-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* ===== INSTALL BANNER ===== */
+.install-banner {
+  background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(139,92,246,0.08));
+  border: 1.5px solid rgba(0,229,255,0.2);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.install-banner h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.install-banner p {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.install-steps {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.install-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+}
+.step-num {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  color: #000;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ===== INFO SECTION ===== */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-key { color: var(--muted); font-size: 10px; }
+.info-val { color: var(--text); }
+
+/* ===== FAB ===== */
+.fab {
+  position: fixed;
+  bottom: calc(var(--safe-bot) + 70px);
+  right: 20px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  font-size: 26px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px rgba(0,229,255,0.35);
+  cursor: pointer;
+  z-index: 200;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: none;
+}
+.fab:active { transform: scale(0.93); box-shadow: 0 2px 12px rgba(0,229,255,0.2); }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav {
+  display: flex;
+  background: rgba(8,14,28,0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bot);
+  flex-shrink: 0;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px 6px;
+  cursor: pointer;
+  gap: 3px;
+  -webkit-user-select: none; user-select: none;
+  transition: color 0.2s;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border: none;
+  background: none;
+}
+.nav-item .nav-icon { font-size: 22px; line-height: 1; }
+.nav-item.active { color: var(--accent); }
+.nav-item .nav-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nav-item.active .nav-dot { opacity: 1; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  top: calc(var(--safe-top) + 70px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: var(--surf3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  z-index: 999;
+  opacity: 0;
+  transition: all 0.3s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== SEPARATOR ===== */
+.sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0 12px;
+}
+
+/* helper */
+.mt8 { margin-top: 8px; }
+.mt12 { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="logo">Sphere<em>Pro</em></div>
+    <div class="header-right">
+      <span class="offline-badge" id="offline-badge">Offline</span>
+      <div class="status-dot" id="status-dot"></div>
+    </div>
+  </div>
+
+  <!-- TABS (top) -->
+  <!-- removed top tabs, using bottom nav -->
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- ===================== VIEW: REFERENZ ===================== -->
+    <div class="view active" id="view-ref">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">🎯</div>
+          <div>
+            <div class="card-title">Referenzpunkt</div>
+            <div class="card-sub">Optimal-Nullpunkt definieren</div>
+          </div>
+          <span class="badge open" id="badge-ref">Offen</span>
+        </div>
+        <div class="card-body">
+          <p style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8;margin-bottom:14px">
+            Messen Sie die Kugel von einem festen Punkt. Diese Koordinaten definieren den Optimal-Nullpunkt des Kugelzentrums.
+          </p>
+
+          <div class="field-label">Gemessener Referenzpunkt (mm)</div>
+          <div class="xyz-row">
+            <div class="xyz-field">
+              <span class="xyz-letter">X</span>
+              <input type="number" id="ref-x" value="0" step="0.001" inputmode="decimal">
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-letter">Y</span>
+              <input type="number" id="ref-y" value="0" step="0.001" inputmode="decimal">
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-letter">Z</span>
+              <input type="number" id="ref-z" value="0" step="0.001" inputmode="decimal">
+            </div>
+          </div>
+
+          <div class="field-label">Kompensationsradius (Tastkugel + Kugel)</div>
+          <div class="single-input-wrap">
+            <input type="number" id="ref-r" value="28" step="0.001" inputmode="decimal">
+            <span class="input-unit">mm</span>
+          </div>
+          <p style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:14px">
+            Vorgabe: 25mm (Kugel) + 3mm (Taster) = 28mm
+          </p>
+
+          <button class="btn btn-primary" onclick="setReference()">
+            ✓ Nullpunkt setzen
+          </button>
+        </div>
+      </div>
+
+      <!-- System info -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon yellow">ℹ️</div>
+          <div>
+            <div class="card-title">Systemparameter</div>
+            <div class="card-sub">Fest konfiguriert</div>
+          </div>
+        </div>
+        <div class="info-row"><span class="info-key">Referenzkugel ⌀</span><span class="info-val">50.000 mm</span></div>
+        <div class="info-row"><span class="info-key">Messkugel (Taster) ⌀</span><span class="info-val">6.000 mm</span></div>
+        <div class="info-row"><span class="info-key">Kompensationsradius</span><span class="info-val" id="info-comp">28.000 mm</span></div>
+        <div class="info-row"><span class="info-key">Algorithmus</span><span class="info-val">Least Squares</span></div>
+        <div class="info-row"><span class="info-key">Min. Messpunkte</span><span class="info-val">4</span></div>
+      </div>
+    </div>
+
+    <!-- ===================== VIEW: MESSEN ===================== -->
+    <div class="view" id="view-measure">
+
+      <!-- Add point -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">📍</div>
+          <div>
+            <div class="card-title">Messpunkt</div>
+            <div class="card-sub">Roboter-Koordinaten eingeben</div>
+          </div>
+          <span class="badge active2" id="badge-pts">Min. 4</span>
+        </div>
+        <div class="card-body">
+          <div class="field-label">Punkt-Koordinaten (mm)</div>
+          <div class="xyz-row">
+            <div class="xyz-field">
+              <span class="xyz-letter">X</span>
+              <input type="number" id="pt-x" step="0.001" inputmode="decimal" placeholder="0.000">
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-letter">Y</span>
+              <input type="number" id="pt-y" step="0.001" inputmode="decimal" placeholder="0.000">
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-letter">Z</span>
+              <input type="number" id="pt-z" step="0.001" inputmode="decimal" placeholder="0.000">
+            </div>
+          </div>
+          <div class="btn-two">
+            <button class="btn btn-ghost" onclick="addRandom()">⚡ Demo</button>
+            <button class="btn btn-primary" onclick="addPoint()">+ Hinzufügen</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Points list -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon green">📋</div>
+          <div>
+            <div class="card-title">Erfasste Punkte</div>
+            <div class="card-sub" id="pts-count-label">0 Punkte</div>
+          </div>
+          <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:11px;border-radius:8px" onclick="clearPoints()">Löschen</button>
+        </div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="point-list" id="point-list">
+            <div class="empty-state">
+              <span class="empty-icon">📐</span>
+              Noch keine Punkte erfasst.<br>
+              Geben Sie mindestens 4 Punkte ein.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== VIEW: ANALYSE ===================== -->
+    <div class="view" id="view-analysis">
+
+      <!-- Quality alert -->
+      <div class="quality-alert none" id="quality-alert">
+        <div class="quality-icon-big" id="q-icon">📊</div>
+        <div class="quality-text">
+          <strong id="q-title">Warte auf Daten</strong>
+          <span id="q-sub">Mindestens 4 Messpunkte erforderlich</span>
+        </div>
+      </div>
+
+      <!-- Max deviation -->
+      <div class="metric-big">
+        <div class="metric-label-big">Maximale Abweichung</div>
+        <div>
+          <span class="metric-val" id="max-dev" style="color:var(--accent)">—</span>
+          <span class="metric-unit-big">mm</span>
+        </div>
+        <div class="metric-sub-text" id="max-dev-sub">Warte auf Messpunkte...</div>
+        <div class="dev-bar-wrap">
+          <div class="dev-bar-fill" id="dev-bar" style="width:0%;background:var(--green)"></div>
+        </div>
+      </div>
+
+      <!-- Axis deviations -->
+      <div class="axis-cards">
+        <div class="axis-card">
+          <div class="axis-card-letter" style="color:#f87171">X</div>
+          <div class="axis-card-val" id="dev-x">—</div>
+        </div>
+        <div class="axis-card">
+          <div class="axis-card-letter" style="color:#34d399">Y</div>
+          <div class="axis-card-val" id="dev-y">—</div>
+        </div>
+        <div class="axis-card">
+          <div class="axis-card-letter" style="color:#60a5fa">Z</div>
+          <div class="axis-card-val" id="dev-z">—</div>
+        </div>
+      </div>
+
+      <!-- Fit center -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">🔮</div>
+          <div>
+            <div class="card-title">Berechnetes Zentrum</div>
+            <div class="card-sub">Ausgleichsrechnung (LSQ)</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-key" style="color:#f87171">X</span>
+          <span class="info-val" id="fit-x">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key" style="color:#34d399">Y</span>
+          <span class="info-val" id="fit-y">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key" style="color:#60a5fa">Z</span>
+          <span class="info-val" id="fit-z">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Radius (gefittet)</span>
+          <span class="info-val" id="fit-r">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Δ Radius</span>
+          <span class="info-val" id="fit-dr">—</span>
+        </div>
+      </div>
+
+      <!-- Crosshair -->
+      <div class="canvas-wrap">
+        <div class="canvas-label-row">
+          <span>XY-Abweichung</span>
+          <span id="ch-scale-label">Skala: 2mm/div</span>
+        </div>
+        <canvas id="ch" width="340" height="340"></canvas>
+      </div>
+
+      <!-- Residuals -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon yellow">📉</div>
+          <div>
+            <div class="card-title">Punkt-Residuen</div>
+            <div class="card-sub">Abstand zur Ausgleichskugel</div>
+          </div>
+        </div>
+        <div class="card-body" style="padding-top:8px">
+          <div id="residuals-list" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">
+            Keine Daten
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== VIEW: EINSTELLUNGEN ===================== -->
+    <div class="view" id="view-settings">
+
+      <div class="install-banner" id="install-banner">
+        <h3>App installieren</h3>
+        <p>SpherePro als vollwertige App auf Ihrem iPhone speichern — kein App Store nötig.</p>
+        <div class="install-steps">
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <span>Tippen Sie auf das <strong>Teilen-Symbol</strong> (□↑) in Safari</span>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <span>Wählen Sie <strong>„Zum Home-Bildschirm"</strong></span>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <span>Tippen Sie auf <strong>„Hinzufügen"</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">⚙️</div>
+          <div>
+            <div class="card-title">Konfiguration</div>
+            <div class="card-sub">Aktuelle Parameter</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Referenzkugel ⌀</span>
+          <span class="settings-val">50.000 mm</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Tastkugel ⌀</span>
+          <span class="settings-val">6.000 mm</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Kompensationsradius</span>
+          <span class="settings-val" id="cfg-comp">28.000 mm</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Algorithmus</span>
+          <span class="settings-val">LSQ 3D</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Nullpunkt gesetzt</span>
+          <span class="settings-val" id="cfg-ref">Nein</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Messpunkte</span>
+          <span class="settings-val" id="cfg-pts">0</span>
+        </div>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-header">
+          <div class="card-icon green">💾</div>
+          <div>
+            <div class="card-title">Daten</div>
+            <div class="card-sub">Lokal gespeichert</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="btn-two">
+            <button class="btn btn-ghost" onclick="exportCSV()">📤 CSV Export</button>
+            <button class="btn btn-danger" onclick="resetAll()">🗑 Zurücksetzen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt12">
+        <div class="card-header">
+          <div class="card-icon purple">🌐</div>
+          <div>
+            <div class="card-title">Über SpherePro</div>
+            <div class="card-sub">v1.0.0 · PWA</div>
+          </div>
+        </div>
+        <div class="info-row"><span class="info-key">Version</span><span class="info-val">1.0.0</span></div>
+        <div class="info-row"><span class="info-key">Offline-fähig</span><span class="info-val" style="color:var(--green)">✓ Ja</span></div>
+        <div class="info-row"><span class="info-key">Datenspeicher</span><span class="info-val">Lokal (localStorage)</span></div>
+        <div class="info-row"><span class="info-key">Algorithmus</span><span class="info-val">Least Squares 3D</span></div>
+      </div>
+
+    </div>
+  </div><!-- /scroll-area -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-ref" onclick="showView('ref')">
+      <span class="nav-icon">🎯</span>
+      <span>Referenz</span>
+      <div class="nav-dot"></div>
+    </button>
+    <button class="nav-item" id="nav-measure" onclick="showView('measure')">
+      <span class="nav-icon">📍</span>
+      <span>Messen</span>
+      <div class="nav-dot"></div>
+    </button>
+    <button class="nav-item" id="nav-analysis" onclick="showView('analysis')">
+      <span class="nav-icon">📊</span>
+      <span>Analyse</span>
+      <div class="nav-dot"></div>
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="showView('settings')">
+      <span class="nav-icon">⚙️</span>
+      <span>Einst.</span>
+      <div class="nav-dot"></div>
+    </button>
+  </nav>
+
+</div><!-- /shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  refX: 0, refY: 0, refZ: 0,
+  refR: 28,
+  refSet: false,
+  points: []
+};
+
+// Load from localStorage
+(function loadState() {
+  try {
+    const saved = localStorage.getItem('spherepro_state');
+    if (saved) {
+      const s = JSON.parse(saved);
+      Object.assign(state, s);
+      // Restore UI inputs
+      document.getElementById('ref-x').value = state.refX;
+      document.getElementById('ref-y').value = state.refY;
+      document.getElementById('ref-z').value = state.refZ;
+      document.getElementById('ref-r').value = state.refR;
+      renderAll();
+    }
+  } catch(e) {}
+})();
+
+function saveState() {
+  try { localStorage.setItem('spherepro_state', JSON.stringify(state)); } catch(e){}
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let currentView = 'ref';
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  document.getElementById('scroll-area').scrollTop = 0;
+  currentView = name;
+}
+
+// ============================================================
+// REFERENCE
+// ============================================================
+function setReference() {
+  const x = parseFloat(document.getElementById('ref-x').value) || 0;
+  const y = parseFloat(document.getElementById('ref-y').value) || 0;
+  const z = parseFloat(document.getElementById('ref-z').value) || 0;
+  const r = parseFloat(document.getElementById('ref-r').value) || 28;
+  state.refX = x; state.refY = y; state.refZ = z; state.refR = r;
+  state.refSet = true;
+  saveState();
+  renderAll();
+  toast('Nullpunkt gesetzt ✓');
+  setTimeout(() => showView('measure'), 600);
+}
+
+// ============================================================
+// POINTS
+// ============================================================
+function addPoint() {
+  const x = parseFloat(document.getElementById('pt-x').value);
+  const y = parseFloat(document.getElementById('pt-y').value);
+  const z = parseFloat(document.getElementById('pt-z').value);
+  if (isNaN(x) || isNaN(y) || isNaN(z)) { toast('Alle 3 Koordinaten eingeben ⚠️'); return; }
+  state.points.push({ x, y, z });
+  document.getElementById('pt-x').value = '';
+  document.getElementById('pt-y').value = '';
+  document.getElementById('pt-z').value = '';
+  saveState();
+  renderAll();
+  toast(`Punkt ${state.points.length} erfasst ✓`);
+}
+
+function addRandom() {
+  const cx = state.refX + (Math.random()-0.5)*4;
+  const cy = state.refY + (Math.random()-0.5)*4;
+  const cz = state.refZ + (Math.random()-0.5)*4;
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2*Math.random()-1);
+  const noise = (Math.random()-0.5)*0.5;
+  const r = state.refR + noise;
+  document.getElementById('pt-x').value = +(cx + r*Math.sin(phi)*Math.cos(theta)).toFixed(3);
+  document.getElementById('pt-y').value = +(cy + r*Math.sin(phi)*Math.sin(theta)).toFixed(3);
+  document.getElementById('pt-z').value = +(cz + r*Math.cos(phi)).toFixed(3);
+}
+
+function removePoint(i) {
+  state.points.splice(i, 1);
+  saveState();
+  renderAll();
+}
+
+function clearPoints() {
+  if (state.points.length === 0) return;
+  state.points = [];
+  saveState();
+  renderAll();
+  toast('Alle Punkte gelöscht');
+}
+
+function resetAll() {
+  state = { refX:0, refY:0, refZ:0, refR:28, refSet:false, points:[] };
+  document.getElementById('ref-x').value = 0;
+  document.getElementById('ref-y').value = 0;
+  document.getElementById('ref-z').value = 0;
+  document.getElementById('ref-r').value = 28;
+  document.getElementById('pt-x').value = '';
+  document.getElementById('pt-y').value = '';
+  document.getElementById('pt-z').value = '';
+  saveState();
+  renderAll();
+  toast('Zurückgesetzt ✓');
+  showView('ref');
+}
+
+// ============================================================
+// SPHERE FIT (Least Squares) — clean, Safari-safe implementation
+// ============================================================
+function fitSphere(pts) {
+  const n = pts.length;
+  if (n < 4) return null;
+
+  // Build A (n x 4) and b (n x 1)
+  // Linearised form: 2x*cx + 2y*cy + 2z*cz + d = x²+y²+z²
+  // where d = r² - cx²-cy²-cz²
+  var A = [], b = [];
+  for (var i = 0; i < n; i++) {
+    var p = pts[i];
+    A.push([2*p.x, 2*p.y, 2*p.z, 1]);
+    b.push(p.x*p.x + p.y*p.y + p.z*p.z);
+  }
+
+  // Compute ATA (4x4) and ATb (4x1)
+  var ATA = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  var ATb = [0,0,0,0];
+  for (var k = 0; k < n; k++) {
+    for (var ii = 0; ii < 4; ii++) {
+      ATb[ii] += A[k][ii] * b[k];
+      for (var jj = 0; jj < 4; jj++) {
+        ATA[ii][jj] += A[k][ii] * A[k][jj];
+      }
+    }
+  }
+
+  // Solve ATA * c = ATb via Gaussian elimination with partial pivoting
+  var c = solveLinear(ATA, ATb);
+  if (!c) return null;
+
+  var cx = c[0], cy = c[1], cz = c[2], d = c[3];
+  var r2 = d + cx*cx + cy*cy + cz*cz;
+  if (r2 < 0) return null;
+  var r = Math.sqrt(r2);
+
+  var residuals = pts.map(function(p) {
+    var dist = Math.sqrt((p.x-cx)*(p.x-cx) + (p.y-cy)*(p.y-cy) + (p.z-cz)*(p.z-cz));
+    return Math.abs(dist - r);
+  });
+
+  return { cx: cx, cy: cy, cz: cz, r: r, residuals: residuals };
+}
+
+function solveLinear(M, bv) {
+  var n = 4;
+  // Build augmented matrix
+  var a = [];
+  for (var i = 0; i < n; i++) {
+    a.push(M[i].slice());
+    a[i].push(bv[i]);
+  }
+
+  // Forward elimination with partial pivoting
+  for (var col = 0; col < n; col++) {
+    // Find pivot
+    var maxVal = Math.abs(a[col][col]);
+    var maxRow = col;
+    for (var row = col + 1; row < n; row++) {
+      if (Math.abs(a[row][col]) > maxVal) {
+        maxVal = Math.abs(a[row][col]);
+        maxRow = row;
+      }
+    }
+    // Swap rows
+    var tmp = a[col]; a[col] = a[maxRow]; a[maxRow] = tmp;
+
+    if (Math.abs(a[col][col]) < 1e-12) return null;
+
+    // Eliminate below
+    for (var r2 = col + 1; r2 < n; r2++) {
+      var factor = a[r2][col] / a[col][col];
+      for (var c2 = col; c2 <= n; c2++) {
+        a[r2][c2] -= factor * a[col][c2];
+      }
+    }
+  }
+
+  // Back substitution
+  var x = new Array(n).fill(0);
+  for (var i2 = n - 1; i2 >= 0; i2--) {
+    x[i2] = a[i2][n];
+    for (var j2 = i2 + 1; j2 < n; j2++) {
+      x[i2] -= a[i2][j2] * x[j2];
+    }
+    x[i2] /= a[i2][i2];
+  }
+  return x;
+}
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+  renderRef();
+  renderPoints();
+  const result = state.points.length >= 4 ? fitSphere(state.points) : null;
+  renderAnalysis(result);
+  renderSettings();
+}
+
+function renderRef() {
+  const b = document.getElementById('badge-ref');
+  if (state.refSet) {
+    b.textContent = 'Gesetzt'; b.className = 'badge done2';
+  } else {
+    b.textContent = 'Offen'; b.className = 'badge open';
+  }
+  document.getElementById('info-comp').textContent = state.refR.toFixed(3) + ' mm';
+}
+
+function renderPoints() {
+  const n = state.points.length;
+  document.getElementById('pts-count-label').textContent = n + ' Punkt' + (n!==1?'e':'');
+
+  const b = document.getElementById('badge-pts');
+  if (n === 0) { b.textContent = 'Min. 4'; b.className = 'badge open'; }
+  else if (n < 4) { b.textContent = n+'/4'; b.className = 'badge warn2'; }
+  else { b.textContent = n+' ✓'; b.className = 'badge done2'; }
+
+  const list = document.getElementById('point-list');
+  if (n === 0) {
+    list.innerHTML = '<div class="empty-state"><span class="empty-icon">📐</span>Noch keine Punkte erfasst.<br>Geben Sie mindestens 4 Punkte ein.</div>';
+    return;
+  }
+
+  const result = n >= 4 ? fitSphere(state.points) : null;
+  list.innerHTML = state.points.map((p,i) => {
+    const res = result ? result.residuals[i] : null;
+    const resColor = res===null ? 'var(--muted)' : res<0.1 ? 'var(--green)' : res<0.5 ? 'var(--yellow)' : 'var(--red)';
+    return `<div class="point-item">
+      <div class="point-num">${i+1}</div>
+      <div class="point-coords">
+        <span class="coord-label">X</span>${p.x.toFixed(3)}
+        <span class="coord-label"> Y</span>${p.y.toFixed(3)}
+        <span class="coord-label"> Z</span>${p.z.toFixed(3)}
+        ${res!==null?`<br><span class="coord-label">Res: </span><span style="color:${resColor}">${res.toFixed(4)} mm</span>`:''}
+      </div>
+      <button class="point-del" onclick="removePoint(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAnalysis(result) {
+  const alert = document.getElementById('quality-alert');
+  if (!result) {
+    alert.className = 'quality-alert none';
+    document.getElementById('q-icon').textContent = '📊';
+    document.getElementById('q-title').textContent = 'Warte auf Daten';
+    document.getElementById('q-sub').textContent = 'Mindestens 4 Messpunkte erforderlich';
+    document.getElementById('max-dev').textContent = '—';
+    document.getElementById('max-dev-sub').textContent = 'Warte auf Messpunkte...';
+    document.getElementById('dev-x').textContent = '—';
+    document.getElementById('dev-y').textContent = '—';
+    document.getElementById('dev-z').textContent = '—';
+    document.getElementById('fit-x').textContent = '—';
+    document.getElementById('fit-y').textContent = '—';
+    document.getElementById('fit-z').textContent = '—';
+    document.getElementById('fit-r').textContent = '—';
+    document.getElementById('fit-dr').textContent = '—';
+    document.getElementById('residuals-list').textContent = 'Keine Daten';
+    document.getElementById('dev-bar').style.width = '0%';
+    drawCrosshair(null);
+    return;
+  }
+
+  const {cx,cy,cz,r,residuals} = result;
+  const dx = cx - state.refX;
+  const dy = cy - state.refY;
+  const dz = cz - state.refZ;
+  const totalDev = Math.sqrt(dx*dx+dy*dy+dz*dz);
+  const maxRes = Math.max(...residuals);
+
+  // Values
+  document.getElementById('max-dev').textContent = totalDev.toFixed(4);
+  document.getElementById('max-dev').style.color = totalDev < 0.1 ? 'var(--green)' : totalDev < 0.5 ? 'var(--yellow)' : 'var(--red)';
+  document.getElementById('max-dev-sub').textContent = `${state.points.length} Punkte · Max Res: ${maxRes.toFixed(4)} mm`;
+
+  const fmt = v => (v>=0?'+':'')+v.toFixed(4)+' mm';
+  document.getElementById('dev-x').textContent = fmt(dx);
+  document.getElementById('dev-y').textContent = fmt(dy);
+  document.getElementById('dev-z').textContent = fmt(dz);
+  document.getElementById('fit-x').textContent = cx.toFixed(4) + ' mm';
+  document.getElementById('fit-y').textContent = cy.toFixed(4) + ' mm';
+  document.getElementById('fit-z').textContent = cz.toFixed(4) + ' mm';
+  document.getElementById('fit-r').textContent = r.toFixed(4) + ' mm';
+  const dr = r - state.refR;
+  document.getElementById('fit-dr').textContent = (dr>=0?'+':'')+dr.toFixed(4)+' mm';
+  document.getElementById('fit-dr').style.color = Math.abs(dr)<0.05?'var(--green)':Math.abs(dr)<0.2?'var(--yellow)':'var(--red)';
+
+  // Dev bar
+  const devPct = Math.min(100, totalDev/2*100);
+  const db = document.getElementById('dev-bar');
+  db.style.width = devPct + '%';
+  db.style.background = totalDev<0.1?'var(--green)':totalDev<0.5?'var(--yellow)':'var(--red)';
+
+  // Quality
+  if (totalDev < 0.1) {
+    alert.className = 'quality-alert good';
+    document.getElementById('q-icon').textContent = '✅';
+    document.getElementById('q-title').textContent = 'Exzellente Genauigkeit';
+    document.getElementById('q-sub').textContent = `Abweichung ${totalDev.toFixed(4)} mm — innerhalb Toleranz`;
+  } else if (totalDev < 0.5) {
+    alert.className = 'quality-alert warn';
+    document.getElementById('q-icon').textContent = '⚠️';
+    document.getElementById('q-title').textContent = 'Mittlere Abweichung';
+    document.getElementById('q-sub').textContent = `${totalDev.toFixed(4)} mm — Messpunkte prüfen`;
+  } else {
+    alert.className = 'quality-alert bad';
+    document.getElementById('q-icon').textContent = '❌';
+    document.getElementById('q-title').textContent = 'Hohe Abweichung';
+    document.getElementById('q-sub').textContent = `${totalDev.toFixed(4)} mm — Neu kalibrieren!`;
+  }
+
+  // Residuals list
+  document.getElementById('residuals-list').innerHTML = residuals.map((res,i)=>{
+    const col = res<0.1?'var(--green)':res<0.5?'var(--yellow)':'var(--red)';
+    const pct = Math.min(100, res/0.5*100);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--muted);width:60px">Punkt ${i+1}</span>
+      <div style="flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};transition:width 0.4s"></div>
+      </div>
+      <span style="color:${col};width:68px;text-align:right">${res.toFixed(4)} mm</span>
+    </div>`;
+  }).join('');
+
+  drawCrosshair({dx,dy,dz,totalDev});
+}
+
+// ============================================================
+// CROSSHAIR 2D
+// ============================================================
+function drawCrosshair(data) {
+  const canvas = document.getElementById('ch');
+  const w = canvas.width, h = canvas.height;
+  const cx = w/2, cy = h/2;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+
+  // BG
+  ctx.fillStyle = '#0c1424';
+  ctx.fillRect(0,0,w,h);
+
+  const scale = 60; // px/mm
+
+  // Grid
+  ctx.strokeStyle = 'rgba(26,42,69,0.9)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=8;i++){
+    const x=i*w/8; const y=i*h/8;
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+  }
+
+  // Crosshair
+  ctx.strokeStyle='rgba(0,229,255,0.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,h-8);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(8,cy);ctx.lineTo(w-8,cy);ctx.stroke();
+
+  // Tolerance circles
+  [0.5,1.0,1.5,2.0].forEach(r=>{
+    ctx.strokeStyle='rgba(0,229,255,0.12)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(cx,cy,r*scale,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='rgba(0,229,255,0.18)';
+    ctx.font='9px DM Mono,monospace';
+    ctx.fillText(r+'mm', cx+r*scale+3, cy-3);
+  });
+
+  // Axis labels
+  ctx.fillStyle='rgba(248,113,113,0.6)'; ctx.font='bold 11px DM Mono,monospace';
+  ctx.fillText('X', w-16, cy-6);
+  ctx.fillStyle='rgba(52,211,153,0.6)';
+  ctx.fillText('Y', cx+6, 14);
+
+  // Origin dot
+  ctx.fillStyle='#00e5ff';
+  ctx.shadowColor='#00e5ff'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  if (!data) return;
+
+  const px = cx + data.dx*scale;
+  const py = cy - data.dy*scale; // Y inverted
+
+  // Deviation line
+  ctx.strokeStyle='rgba(239,68,68,0.5)'; ctx.lineWidth=1.5;
+  ctx.setLineDash([5,5]);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Individual points
+  state.points.forEach(p=>{
+    const ppx = cx + (p.x-state.refX)*scale*0.3;
+    const ppy = cy - (p.y-state.refY)*scale*0.3;
+    ctx.fillStyle='rgba(245,158,11,0.6)';
+    ctx.shadowColor='#f59e0b'; ctx.shadowBlur=4;
+    ctx.beginPath(); ctx.arc(ppx,ppy,4,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+  });
+
+  // Fit center
+  const col = data.totalDev<0.1?'#10b981':data.totalDev<0.5?'#f59e0b':'#ef4444';
+  ctx.fillStyle=col;
+  ctx.shadowColor=col; ctx.shadowBlur=14;
+  ctx.beginPath(); ctx.arc(px,py,6,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Label
+  ctx.fillStyle=col;
+  ctx.font='10px DM Mono,monospace';
+  ctx.fillText(`Δ${data.totalDev.toFixed(3)}mm`, px+9, py+4);
+}
+
+function renderSettings() {
+  document.getElementById('cfg-comp').textContent = state.refR.toFixed(3)+' mm';
+  document.getElementById('cfg-ref').textContent = state.refSet ? `Ja (${state.refX},${state.refY},${state.refZ})` : 'Nein';
+  document.getElementById('cfg-pts').textContent = state.points.length;
+}
+
+// ============================================================
+// CSV EXPORT
+// ============================================================
+function exportCSV() {
+  if (state.points.length === 0) { toast('Keine Punkte vorhanden'); return; }
+  const result = state.points.length >= 4 ? fitSphere(state.points) : null;
+  let csv = 'Punkt,X,Y,Z,Residuum\n';
+  state.points.forEach((p,i)=>{
+    const res = result ? result.residuals[i].toFixed(6) : '—';
+    csv += `${i+1},${p.x},${p.y},${p.z},${res}\n`;
+  });
+  if (result) {
+    csv += `\nZentrum,${result.cx.toFixed(6)},${result.cy.toFixed(6)},${result.cz.toFixed(6)}\n`;
+    csv += `Radius,${result.r.toFixed(6)}\n`;
+    const dx=result.cx-state.refX,dy=result.cy-state.refY,dz=result.cz-state.refZ;
+    const dev=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    csv += `Abweichung,${dev.toFixed(6)}\n`;
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='spherepro_messung.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exportiert ✓');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2000);
+}
+
+// ============================================================
+// OFFLINE / ONLINE
+// ============================================================
+function updateOnlineStatus() {
+  const offline = !navigator.onLine;
+  document.getElementById('offline-badge').style.display = offline ? 'block' : 'none';
+  document.getElementById('status-dot').style.background = offline ? 'var(--yellow)' : 'var(--green)';
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ============================================================
+// SERVICE WORKER
+// ============================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ============================================================
+// INIT
+// ============================================================
+renderAll();
+</script>
+</body>
+</html>
