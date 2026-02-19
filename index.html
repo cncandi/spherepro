@@ -447,6 +447,27 @@ canvas#ch{width:100%;aspect-ratio:1;border-radius:7px;display:block}
       <div class="ac"><div class="al" style="color:#fb923c" id="tr-bl">B</div><div class="av" id="tr-b">—</div><div class="au" id="tr-bu">°</div></div>
       <div class="ac"><div class="al" style="color:#facc15" id="tr-cl">C</div><div class="av" id="tr-c">—</div><div class="au" id="tr-cu">°</div></div>
     </div>
+    <!-- TCP VISUALISIERUNG -->
+    <div class="card" id="tcp-vis-card" style="display:none">
+      <div class="card-header"><div class="card-icon ci-orange">📐</div><div><div class="card-title">Verschiebung A6 → TCP</div><div class="card-sub">Flansch-Offset Visualisierung</div></div></div>
+      <div class="card-body" style="padding-bottom:8px">
+        <!-- Flansch → TCP Pfeildiagramm -->
+        <div style="background:var(--surf2);border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Offset-Vektor im Flanschkoordinatensystem</div>
+          <canvas id="tcp-arrow-canvas" width="300" height="160" style="width:100%;border-radius:7px;display:block"></canvas>
+        </div>
+        <!-- Achsen-Balken -->
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Einzelne Achsoffsets</div>
+        <div id="tcp-axis-bars"></div>
+        <!-- Convergenz der Flanschpunkte -->
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px">Konvergenz der Fixpunkt-Berechnungen</div>
+        <div style="background:var(--surf2);border-radius:10px;padding:9px">
+          <canvas id="tcp-conv-canvas" width="300" height="160" style="width:100%;border-radius:7px;display:block"></canvas>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:6px;text-align:center">Jeder Punkt = berechneter Weltfixpunkt pro Flanschpose</div>
+        </div>
+      </div>
+    </div>
+
     <div class="result-box" id="result-box" style="display:none">
       <div class="result-title" id="result-title">⚙️ KUKA $TOOL</div>
       <div class="code-out" id="code-out"></div>
@@ -992,7 +1013,7 @@ function renderSphereAnalysis(result){
       '<div style="flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+c+'"></div></div>'+
       '<span style="color:'+c+';width:70px;text-align:right">'+rv.toFixed(4)+' mm</span></div>';
   }).join('');
-  drawCrosshair({dx:dx,dy:dy,dz:dz,totalDev:dev});
+  drawCrosshair({dx:dx,dy:dy,dz:dz,totalDev:dev,residuals:result.residuals});
 }
 
 // ============================================================
@@ -1100,12 +1121,172 @@ function renderTcpResult(result){
       '<div style="flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+c+'"></div></div>'+
       '<span style="color:'+c+';width:70px;text-align:right">'+rv.toFixed(4)+' mm</span></div>';
   }).join('');
+  // Draw visualization after DOM update
+  setTimeout(function(){drawTcpVisualization(result);},50);
 }
 
 function copyResult(){
   var text=document.getElementById('code-out').textContent;
   if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast('Kopiert ✓');});}
   else{var el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);toast('Kopiert ✓');}
+}
+
+// ============================================================
+// TCP VISUALISIERUNG
+// ============================================================
+function drawTcpVisualization(result){
+  var visCard=document.getElementById('tcp-vis-card');
+  if(!result){visCard.style.display='none';return;}
+  visCard.style.display='block';
+  var rb=ROBOTS[currentRobot];
+  var x=result.x,y=result.y,z=result.z;
+  var len=Math.sqrt(x*x+y*y+z*z);
+
+  // --- 1. PFEIL-DIAGRAMM: Flansch → TCP ---
+  var ac=document.getElementById('tcp-arrow-canvas');
+  var w=ac.width,h=ac.height;
+  var ctx=ac.getContext('2d');
+  ctx.fillStyle='#080e1c';ctx.fillRect(0,0,w,h);
+
+  // Flansch links, TCP rechts
+  var flanschX=60,flanschY=h/2,tcpX=w-60,tcpY=h/2;
+
+  // Hintergrund-Grid
+  ctx.strokeStyle='rgba(26,42,69,.5)';ctx.lineWidth=1;
+  for(var i=0;i<w;i+=30){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();}
+  for(var j=0;j<h;j+=30){ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(w,j);ctx.stroke();}
+
+  // Flansch-Symbol (Kreis mit Kreuz)
+  ctx.strokeStyle='rgba(74,96,128,.8)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(flanschX,flanschY,18,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(flanschX-12,flanschY);ctx.lineTo(flanschX+12,flanschY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(flanschX,flanschY-12);ctx.lineTo(flanschX,flanschY+12);ctx.stroke();
+  ctx.fillStyle='rgba(74,96,128,.6)';ctx.font='bold 8px DM Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('A6',flanschX,flanschY+30);ctx.fillText('FLANSCH',flanschX,flanschY+40);
+
+  // Haupt-Pfeil (Flansch → TCP)
+  ctx.strokeStyle=rb.color;ctx.lineWidth=3;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(flanschX+20,flanschY);ctx.lineTo(tcpX-20,tcpY);ctx.stroke();
+  // Pfeilspitze
+  ctx.fillStyle=rb.color;ctx.beginPath();
+  ctx.moveTo(tcpX-20,tcpY);ctx.lineTo(tcpX-32,tcpY-7);ctx.lineTo(tcpX-32,tcpY+7);ctx.closePath();ctx.fill();
+
+  // XYZ Komponenten als farbige Pfeile unterhalb
+  var arrowY=flanschY+12;
+  var maxComp=Math.max(Math.abs(x),Math.abs(y),Math.abs(z),0.001);
+  var arrowLen=80;
+  var comps=[{v:x,c:'#f87171',l:'X'},{v:y,c:'#34d399',l:'Y'},{v:z,c:'#60a5fa',l:'Z'}];
+  comps.forEach(function(comp,idx){
+    var barY=arrowY+idx*18+10;
+    var barLen=comp.v/maxComp*arrowLen;
+    var startX=flanschX+22;
+    ctx.strokeStyle=comp.c;ctx.lineWidth=2;ctx.globalAlpha=0.7;
+    ctx.beginPath();ctx.moveTo(startX,barY);ctx.lineTo(startX+barLen,barY);ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.fillStyle=comp.c;ctx.font='8px DM Mono,monospace';ctx.textAlign='left';
+    ctx.fillText(comp.l+' '+comp.v.toFixed(2)+'mm',startX+(barLen>0?barLen+4:barLen-40),barY+3);
+  });
+
+  // TCP-Symbol (Diamant)
+  ctx.strokeStyle=rb.color;ctx.lineWidth=2.5;ctx.shadowColor=rb.color;ctx.shadowBlur=10;
+  ctx.beginPath();ctx.moveTo(tcpX,tcpY-14);ctx.lineTo(tcpX+10,tcpY);ctx.lineTo(tcpX,tcpY+14);ctx.lineTo(tcpX-10,tcpY);ctx.closePath();ctx.stroke();ctx.shadowBlur=0;
+  ctx.fillStyle=rb.color;ctx.font='bold 8px DM Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('TCP',tcpX,tcpY+28);
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='9px DM Mono,monospace';
+  ctx.fillText('|XYZ|='+len.toFixed(2)+'mm',tcpX,tcpY+40);
+
+  // Längenangabe über dem Pfeil
+  ctx.fillStyle=rb.color;ctx.font='bold 10px Bebas Neue,sans-serif';ctx.textAlign='center';
+  ctx.fillText(len.toFixed(3)+' mm',w/2,flanschY-22);
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='8px DM Mono,monospace';
+  ctx.fillText('Werkzeuglänge',w/2,flanschY-10);
+
+  // --- 2. ACHSEN-BALKEN ---
+  var maxAbs=Math.max(Math.abs(x),Math.abs(y),Math.abs(z),1);
+  var bars=[{v:x,c:'#f87171',l:'X'},{v:y,c:'#34d399',l:'Y'},{v:z,c:'#60a5fa',l:'Z'}];
+  document.getElementById('tcp-axis-bars').innerHTML=bars.map(function(b){
+    var pct=Math.abs(b.v)/maxAbs*100;
+    var side=b.v>=0?'right':'left';
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+      '<span style="color:'+b.c+';font-family:Bebas Neue,sans-serif;font-size:14px;width:14px">'+b.l+'</span>'+
+      '<div style="flex:1;height:12px;background:var(--surf3);border-radius:3px;position:relative;overflow:hidden">'+
+        '<div style="position:absolute;top:0;'+side+':50%;height:100%;width:'+pct/2+'%;background:'+b.c+';opacity:.8;border-radius:2px"></div>'+
+        '<div style="position:absolute;top:0;left:50%;width:1px;height:100%;background:rgba(255,255,255,.2)"></div>'+
+      '</div>'+
+      '<span style="font-family:DM Mono,monospace;font-size:10px;color:'+b.c+';width:72px;text-align:right">'+(b.v>=0?'+':'')+b.v.toFixed(3)+' mm</span>'+
+    '</div>';
+  }).join('');
+
+  // --- 3. KONVERGENZ-CANVAS: Alle berechneten Weltpunkte ---
+  var cc=document.getElementById('tcp-conv-canvas');
+  var cw=cc.width,ch=cc.height;
+  var cctx=cc.getContext('2d');
+  cctx.fillStyle='#080e1c';cctx.fillRect(0,0,cw,ch);
+
+  // Berechne Weltpunkte pro Pose
+  var n=tcpState.poses.length;
+  var Rs=[],ts=[];
+  tcpState.poses.forEach(function(p){
+    var prb=ROBOTS[p.robot]||rb;
+    Rs.push(prb.toRot(p.a,p.b,p.c));
+    ts.push([p.x,p.y,p.z]);
+  });
+  var worldPts=Rs.map(function(R,i){
+    return [R[0][0]*x+R[0][1]*y+R[0][2]*z+ts[i][0],
+            R[1][0]*x+R[1][1]*y+R[1][2]*z+ts[i][1],
+            R[2][0]*x+R[2][1]*y+R[2][2]*z+ts[i][2]];
+  });
+
+  // Mittelpunkt aller Weltpunkte
+  var mean=[0,0,0];
+  worldPts.forEach(function(w){mean[0]+=w[0];mean[1]+=w[1];mean[2]+=w[2];});
+  mean[0]/=n;mean[1]/=n;mean[2]/=n;
+
+  // Finde Skalierung (XY-Projektion)
+  var maxD=0.5;
+  worldPts.forEach(function(w){
+    maxD=Math.max(maxD,Math.abs(w[0]-mean[0]),Math.abs(w[1]-mean[1]));
+  });
+  maxD=maxD*1.4||1;
+  var ccx=cw/2,ccy=ch/2,sc=Math.min(cw,ch)/2/maxD*0.8;
+
+  // Grid
+  cctx.strokeStyle='rgba(26,42,69,.6)';cctx.lineWidth=1;
+  [0.25,0.5,0.75,1.0].forEach(function(f){
+    cctx.beginPath();cctx.arc(ccx,ccy,f*maxD*sc,0,Math.PI*2);cctx.stroke();
+    cctx.fillStyle='rgba(0,229,255,.15)';cctx.font='8px DM Mono,monospace';cctx.textAlign='left';
+    cctx.fillText((f*maxD).toFixed(2)+'mm',ccx+f*maxD*sc+2,ccy-2);
+  });
+  // Kreuz
+  cctx.strokeStyle='rgba(0,229,255,.2)';
+  cctx.beginPath();cctx.moveTo(ccx,8);cctx.lineTo(ccx,ch-8);cctx.stroke();
+  cctx.beginPath();cctx.moveTo(8,ccy);cctx.lineTo(cw-8,ccy);cctx.stroke();
+
+  // Linien vom Mittelpunkt zu jedem Punkt
+  worldPts.forEach(function(w,i){
+    var px=ccx+(w[0]-mean[0])*sc,py=ccy-(w[1]-mean[1])*sc;
+    cctx.strokeStyle='rgba(255,255,255,.07)';cctx.lineWidth=1;
+    cctx.beginPath();cctx.moveTo(ccx,ccy);cctx.lineTo(px,py);cctx.stroke();
+  });
+
+  // Alle Weltpunkte
+  worldPts.forEach(function(w,i){
+    var px=ccx+(w[0]-mean[0])*sc,py=ccy-(w[1]-mean[1])*sc;
+    var rv=result.residuals[i];
+    var col=rv<0.1?'#10b981':rv<0.5?'#f59e0b':'#ef4444';
+    cctx.fillStyle=col;cctx.shadowColor=col;cctx.shadowBlur=6;
+    cctx.beginPath();cctx.arc(px,py,5,0,Math.PI*2);cctx.fill();cctx.shadowBlur=0;
+    // Nummer
+    cctx.fillStyle='white';cctx.font='bold 7px DM Mono,monospace';cctx.textAlign='center';
+    cctx.fillText(i+1,px,py+3);
+  });
+
+  // Mittelpunkt (Fixpunkt)
+  cctx.fillStyle='#00e5ff';cctx.shadowColor='#00e5ff';cctx.shadowBlur=14;
+  cctx.beginPath();cctx.arc(ccx,ccy,6,0,Math.PI*2);cctx.fill();cctx.shadowBlur=0;
+  cctx.fillStyle='rgba(0,229,255,.7)';cctx.font='8px DM Mono,monospace';cctx.textAlign='center';
+  cctx.fillText('FIXPUNKT',ccx,ccy+20);
+  cctx.fillText('RMS '+result.rms.toFixed(4)+'mm',ccx,ccy+30);
 }
 
 // ============================================================
@@ -1202,40 +1383,68 @@ function solve3(M,bv){
 }
 
 // ============================================================
-// CROSSHAIR
+// CROSSHAIR — alle Punkte, auto-skaliert
 // ============================================================
 function drawCrosshair(data){
   var canvas=document.getElementById('ch'); if(!canvas) return;
-  var w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,sc=50;
+  var w=canvas.width,h=canvas.height,cx=w/2,cy=h/2;
   var ctx=canvas.getContext('2d');
   ctx.fillStyle='#0c1424'; ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle='rgba(26,42,69,.9)';ctx.lineWidth=1;
-  for(var i=0;i<=8;i++){var xx=i*w/8;ctx.beginPath();ctx.moveTo(xx,0);ctx.lineTo(xx,h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,xx);ctx.lineTo(w,xx);ctx.stroke();}
+
+  // Auto-Skalierung: alle Punkte einpassen
+  var allPts=sState.points.map(function(p){return {dx:p.x-sState.refX,dy:p.y-sState.refY};});
+  var maxD=0.5;
+  allPts.forEach(function(p){maxD=Math.max(maxD,Math.abs(p.dx),Math.abs(p.dy));});
+  if(data){maxD=Math.max(maxD,Math.abs(data.dx),Math.abs(data.dy));}
+  maxD=maxD*1.3;
+  var sc=Math.min(cx,cy)*0.85/maxD;
+
+  // Grid-Ringe
+  var ringSteps=[0.25,0.5,0.75,1.0].map(function(f){return +(f*maxD).toFixed(f*maxD<1?3:2);});
+  ringSteps.forEach(function(r){
+    ctx.strokeStyle='rgba(26,42,69,.8)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(cx,cy,r*sc,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='rgba(0,229,255,.2)';ctx.font='8px DM Mono,monospace';ctx.textAlign='left';
+    ctx.fillText(r+'mm',cx+r*sc+3,cy-2);
+  });
+
+  // Kreuzlinien
   ctx.strokeStyle='rgba(0,229,255,.2)';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(cx,6);ctx.lineTo(cx,h-6);ctx.stroke();
   ctx.beginPath();ctx.moveTo(6,cy);ctx.lineTo(w-6,cy);ctx.stroke();
-  [0.5,1.0,1.5,2.0].forEach(function(r){
-    ctx.strokeStyle='rgba(0,229,255,.1)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(cx,cy,r*sc,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='rgba(0,229,255,.2)';ctx.font='8px DM Mono,monospace';
-    ctx.fillText(r+'mm',cx+r*sc+3,cy-2);
-  });
+
+  // Nullpunkt
   ctx.fillStyle='#00e5ff';ctx.shadowColor='#00e5ff';ctx.shadowBlur=8;
   ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-  if(!data) return;
-  var px=cx+data.dx*sc,py=cy-data.dy*sc;
-  ctx.strokeStyle='rgba(239,68,68,.5)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
-  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();ctx.setLineDash([]);
-  sState.points.forEach(function(p){
-    var ppx=cx+(p.x-sState.refX)*sc*.3,ppy=cy-(p.y-sState.refY)*sc*.3;
-    ctx.fillStyle='rgba(245,158,11,.6)';ctx.shadowColor='#f59e0b';ctx.shadowBlur=4;
-    ctx.beginPath();ctx.arc(ppx,ppy,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(0,229,255,.5)';ctx.font='8px DM Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('REF',cx,cy+14);
+
+  if(!data && allPts.length===0) return;
+
+  // ALLE Messpunkte zeichnen
+  allPts.forEach(function(p,i){
+    var px=cx+p.dx*sc,py=cy-p.dy*sc;
+    var rv=data&&data.residuals?data.residuals[i]:null;
+    var col=rv===null?'rgba(245,158,11,.6)':rv<0.1?'rgba(16,185,129,.8)':rv<0.5?'rgba(245,158,11,.8)':'rgba(239,68,68,.8)';
+    ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=5;
+    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    // Nummer
+    ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='bold 7px DM Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(i+1,px,py-6);
   });
+
+  if(!data) return;
+
+  // Abweichungs-Punkt (berechnetes Zentrum)
+  var px=cx+data.dx*sc,py=cy-data.dy*sc;
+  ctx.strokeStyle='rgba(239,68,68,.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();ctx.setLineDash([]);
+
   var col=data.totalDev<0.1?'#10b981':data.totalDev<0.5?'#f59e0b':'#ef4444';
-  ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=12;
-  ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-  ctx.fillStyle=col;ctx.font='9px DM Mono,monospace';
-  ctx.fillText('Δ'+data.totalDev.toFixed(3),px+8,py+4);
+  ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=14;
+  ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle=col;ctx.font='bold 9px DM Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('Δ'+data.totalDev.toFixed(3),px+9,py+4);
 }
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(function(){}); }
